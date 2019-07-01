@@ -1,0 +1,70 @@
+****************************************************************************
+				How Source Files Import and Export Symbols
+****************************************************************************/
+
+Directive extern in example works only when you include them from a c++ source file.
+C language doesn't know anything about the extern "C" directive, but c++ does, and it need this directive applied to C function declaration. This is because c++ mangles function names (https://en.wikipedia.org/wiki/Name_mangling) because it supports function/method overloading, while C doesn't.
+There are two functions with the same name (printSum) that only differ in their parameters’ type: int or float. Function overloading is a C++ feature which isn’t present in C. To implement this feature and differentiate those functions, C++ mangles the function name, as we can see in their exported symbol name (I’ll only pick what’s relevant from nm’s output):
+
+g++ -c print.cpp
+nm print.o 
+
+0000000000000150 T __Z8printSumff
+0000000000000000 T __Z8printSumii
+0000000000000200 T _printSumFloat
+00000000000001e0 T _printSumInt
+                 U _sumF
+                 U _sumI
+
+More human-friendly names:
+
+nm -C print.o
+0000000000000150 T printSum(float, float)
+0000000000000000 T printSum(int, int)
+0000000000000200 T _printSumFloat
+00000000000001e0 T _printSumInt
+                 U _sumF
+                 U _sumI
+
+
+So far we have just compiled source code into object code, we haven’t yet linked. If we don’t link the object file that contains the definitions for those imported symbols together with this object file, the linker will stop with a “missing symbol” error.
+print.cpp is a C++ source file, compiled with a C++ compiler (g++), all the code in it is compiled as C++ code. 
+print.hpp is a header file that can by included both from C or C++ source files, which will allow printSumInt and printSumFloat to be called both from C and from C++, and printSum to be called from C++.
+
+
+gcc -c c-main.c
+nm c-main.o
+
+0000000000000000 T _main
+                 U _printSumFloat
+                 U _printSumInt
+
+
+To link it all together into an executable file, we need to use the C++ linker.
+
+g++ -o c-app sum.o print.o c-main.o
+./c-app
+1 + 2 = 3
+1.5 + 2.5 = 4
+
+
+And now let's try with a C++ main file.
+
+g++ -c cpp-main.cpp
+nm -C cpp-main.o
+                 U printSum(float, float)
+                 U printSum(int, int)
+0000000000000000 T _main
+                 U _printSumFloat
+                 U _printSumInt
+
+Main function isn't exported as a mangled symbol like main(int, char**) because main is a special implementation defined function. And implementation chosen to use C linkage for it no matter whether it's defined in a C or C++ source file.
+
+Linking and running the program gives the expected result:
+
+g++ -o cpp-app sum.o print.o cpp-main.o
+./cpp-app
+1 + 2 = 3
+1.5 + 2.5 = 4
+3 + 4 = 7
+3.5 + 4.5 = 8

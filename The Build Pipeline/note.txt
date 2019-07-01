@@ -1,0 +1,18 @@
+/****************************************************************************
+				The Build Pipeline: Preprocess, Compile, and Link
+****************************************************************************/
+
+Each c++ sourse file needs to be compiled into an object file. 
+First step thet the compiler will do on a source file is run the prepocessor on it. 
+Only souce files are passed to the compiler. Header files are included from source files.
+Each header file can be opened multiple times during the preprocessing phase. Source files, are opened only once by the compiled.
+For each couce file, the prepocessor will build a translation unit by inserting content in it when it finds an #include directive at the same time that it'll be stripping code out of the source file and of the headers when it finds conditional compilation blocks (#ifndef blocks).
+
+Once the preprocessor finishes creating that translation unit, the compiler starts the compilation phase and produces the object file.
+To obtain that translation unit (the preprocessed source code), the -E option can be passed to the g++ compiler, along with the -o option to specify the desired name of the preprocessed source file.
+
+Create the preprocessed file:
+g++ -E hello-world.cpp -o hello-world.ii
+
+See the number of lines:
+wc -l hello-world.ii
